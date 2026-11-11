@@ -1,3 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Open Loops">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10141c" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
 <title>Open Loops</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -382,6 +399,8 @@ function viewNow(){
   if(!loaded) return `<div class="empty">Loading your list…</div>`;
   let h="";
   if(reviewDue()) h+=`<div class="banner info"><p><b>Weekly review.</b> About 10 minutes: clear the inbox, decide on lingering items, pick this week's A's.</p><button class="btn primary sm" data-go="review">Start review</button></div>`;
+  const sinceBk=settings.lastBackup?days(settings.lastBackup):99;
+  if(local&&items.length&&sinceBk>=7&&!reviewDue()) h+=`<div class="banner warn"><p><b>Back up your list.</b> On this device your list lives only in this browser. A backup file keeps it safe.</p><button class="btn sm" data-go="review">Back up</button></div>`;
   const aCount=items.filter(i=>isOpen(i)&&i.prio==="A").length;
   if(aCount>MAX_A) h+=`<div class="banner warn"><p>${aCount} open items are marked A. Keep it to ${MAX_A} so A still means something.</p><button class="btn sm" data-go="review">Fix in review</button></div>`;
   const inbox=items.filter(i=>i.status==="inbox");
@@ -456,7 +475,11 @@ function viewReview(){
   h+=`<div class="step ${aCount&&aCount<=MAX_A?"ok":""}"><div class="step-h"><span class="step-n">4</span><h3>Pick this week's A items</h3></div><p class="note">Up to ${MAX_A}. Tap to cycle A → B → C. Currently ${aCount} marked A.</p>
     <div class="steps">${openAll.map(i=>`<label class="k-${i.kind}"><button type="button" class="prio ${i.prio||""}" data-prio="${esc(i.id)}" style="cursor:pointer;min-width:28px">${i.prio||"–"}</button><span>${esc(i.title)}</span><span class="tag" style="flex:none">${esc(i.project||"")}</span></label>`).join("")||`<p class="note">No open items.</p>`}</div></div>`;
   h+=`<div class="step"><div class="step-h"><span class="step-n">5</span><h3>How good are your time estimates?</h3></div>${calibration()}</div>`;
-  h+=`<div class="step"><div class="step-h"><span class="step-n">6</span><h3>Finish</h3></div><div class="row"><button class="btn primary" id="reviewDone">Mark review done</button><label class="row" style="gap:8px;font-size:14px">Focus timer length <select id="timerLen" style="padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2)">${[15,20,25,30,45,50,60,90].map(m=>`<option value="${m}" ${settings.timer===m?"selected":""}>${m} min</option>`).join("")}</select></label></div></div>`;
+  const lb=settings.lastBackup?days(settings.lastBackup):null;
+  h+=`<div class="step ${lb!==null&&lb<8?"ok":""}"><div class="step-h"><span class="step-n">6</span><h3>Back up your list</h3></div>
+    <p class="note">${lb===null?"No backup yet.":`Last backup: ${lb===0?"today":lb+" days ago"}.`} The backup is one small file with every item and setting. Import it into any copy of this app to restore or move your list. Importing adds new items and updates matching ones; it never deletes anything.</p>
+    <div class="row"><button class="btn primary" id="exportBtn">Export backup</button><label class="btn" for="importFile" style="cursor:pointer">Import backup</label><input type="file" id="importFile" accept=".json,application/json" hidden></div></div>`;
+  h+=`<div class="step"><div class="step-h"><span class="step-n">7</span><h3>Finish</h3></div><div class="row"><button class="btn primary" id="reviewDone">Mark review done</button><label class="row" style="gap:8px;font-size:14px">Focus timer length <select id="timerLen" style="padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2)">${[15,20,25,30,45,50,60,90].map(m=>`<option value="${m}" ${settings.timer===m?"selected":""}>${m} min</option>`).join("")}</select></label></div></div>`;
   return h;
 }
 function viewWhy(){
@@ -656,7 +679,66 @@ $("#main").addEventListener("click",async e=>{
   }
   await save(n);
 });
-$("#main").addEventListener("change",e=>{ if(e.target.id==="timerLen") saveSettings({timer:+e.target.value}); });
+$("#main").addEventListener("change",e=>{
+  if(e.target.id==="timerLen") saveSettings({timer:+e.target.value});
+  if(e.target.id==="importFile"&&e.target.files&&e.target.files[0]) readImport(e.target.files[0]);
+});
+$("#main").addEventListener("click",e=>{ if(e.target.id==="exportBtn") exportData(); });
+
+/* ---------------- backup ---------------- */
+async function exportData(){
+  const json=JSON.stringify({app:"open-loops",format:1,exportedAt:iso(),items,settings},null,2);
+  const name=`open-loops-backup-${new Date().toISOString().slice(0,10)}.json`;
+  const inClaude=!!(window.claude&&window.claude.use);
+  if(inClaude){
+    let dl=null; try{dl=await window.claude.use("downloads");}catch(e){dl=null;}
+    if(dl){
+      try{ await dl.save({filename:name,data:json}); await saveSettings({lastBackup:iso()}); toast("Backup saved."); }
+      catch(e){ if(e&&e.code!=="declined") toast("Couldn't save the file. Try again in a moment."); }
+      return;
+    }
+    try{ await navigator.clipboard.writeText(json); await saveSettings({lastBackup:iso()}); toast("Backup copied. Paste it into a note and save it as a .json file."); }
+    catch(e){ toast("Saving files isn't available here. Open the app from your GitHub link to export."); }
+    return;
+  }
+  try{
+    const blob=new Blob([json],{type:"application/json"}), url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    await saveSettings({lastBackup:iso()}); toast("Backup downloaded.");
+  }catch(e){ toast("Couldn't create the backup file."); }
+}
+function readImport(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    let d; try{ d=JSON.parse(r.result); }catch(e){ toast("That file isn't a valid backup."); return; }
+    if(!d||d.app!=="open-loops"||!Array.isArray(d.items)){ toast("That file isn't an Open Loops backup."); return; }
+    const incoming=d.items.filter(i=>i&&typeof i.id==="string"&&/^[A-Za-z0-9_\-.~:@+]{1,200}$/.test(i.id)&&i.title);
+    const existing=new Set(items.map(i=>i.id));
+    const upd=incoming.filter(i=>existing.has(i.id)).length, add=incoming.length-upd;
+    sheet(`<h2>Import backup?</h2><p class="note">From ${esc(d.exportedAt?new Date(d.exportedAt).toLocaleString():"an unknown date")}. ${add} new item${add===1?"":"s"} will be added and ${upd} updated. Nothing will be deleted.</p>
+      <div class="sheet-foot"><button class="btn ghost" id="iCancel">Cancel</button><button class="btn primary" id="iGo">Import ${incoming.length} items</button></div>`,close=>{
+      $("#iCancel").onclick=close;
+      $("#iGo").onclick=async()=>{ close(); await importItems(incoming,d.settings); };
+    });
+  };
+  r.onerror=()=>toast("Couldn't read that file.");
+  r.readAsText(file);
+  const inp=$("#importFile"); if(inp) inp.value="";
+}
+async function importItems(list,s){
+  const keep=["timer","energy","lastReview"];
+  const sp={}; if(s&&typeof s==="object") keep.forEach(k=>{ if(s[k]!==undefined) sp[k]=s[k]; });
+  if(local){
+    const map=new Map(items.map(i=>[i.id,i])); list.forEach(i=>map.set(i.id,Object.assign({},i)));
+    items=[...map.values()]; Object.assign(settings,sp); persistLocal(); render();
+    toast(`Imported ${list.length} item${list.length===1?"":"s"}.`); return;
+  }
+  let ok=0;
+  for(const i of list){ const body=Object.assign({},i); delete body.id; try{ await db.collection("items").doc(i.id).set(body); ok++; }catch(e){} }
+  if(Object.keys(sp).length) await saveSettings(sp);
+  toast(ok===list.length?`Imported ${ok} item${ok===1?"":"s"}.`:`Imported ${ok} of ${list.length}. Try importing again for the rest.`);
+}
 
 let tt;
 function toast(m){const h=$("#toastHost");h.innerHTML=`<div class="toast" role="status">${esc(m)}</div>`;clearTimeout(tt);tt=setTimeout(()=>{h.innerHTML="";},3200);}
@@ -673,3 +755,6 @@ try{const v=localStorage.getItem("openloops.view");if(v&&["now","projects","revi
 boot();
 })();
 </script>
+
+</body>
+</html>

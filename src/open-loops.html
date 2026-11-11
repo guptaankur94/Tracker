@@ -1,0 +1,740 @@
+<title>Open Loops</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one calm column. Capture box, tabs, then a short "Now" list; everything else one tap away. Timer docks to the bottom edge. */
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --surface-2:#f5f7fb; --line:#d8dee8; --fg:#18202e; --muted:#5b6578; --accent:#2f4bd8; --accent-fg:#ffffff;
+  --deep:#2f4bd8; --deep-bg:#e5e9ff;
+  --admin:#0c8274; --admin-bg:#d9f2ee;
+  --read:#8a6d00; --read-bg:#f8efc8;
+  --practice:#c2531a; --practice-bg:#fde4d6;
+  --followup:#b5326d; --followup-bg:#fbe1ed;
+  --idea:#687185; --idea-bg:#e8ebf1;
+  --warn:#a95a06; --warn-bg:#fff0db; --bad:#bf3328; --bad-bg:#fde4e1; --good:#1b7a44; --good-bg:#dcf2e4;
+  --f-display:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10141c; --surface:#181e29; --surface-2:#1f2633; --line:#2d3646; --fg:#e7ebf3; --muted:#9aa4b7; --accent:#8fa1ff; --accent-fg:#0e1220;
+  --deep:#8fa1ff; --deep-bg:#222a4e; --admin:#4fd0be; --admin-bg:#133430; --read:#e8c64a; --read-bg:#352d0e;
+  --practice:#ff9a62; --practice-bg:#3d2214; --followup:#f27cb0; --followup-bg:#3c1a2b; --idea:#aab2c3; --idea-bg:#272e3b;
+  --warn:#f2a548; --warn-bg:#3a2810; --bad:#ff7b6f; --bad-bg:#3e1c19; --good:#62d492; --good-bg:#15321f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141c; --surface:#181e29; --surface-2:#1f2633; --line:#2d3646; --fg:#e7ebf3; --muted:#9aa4b7; --accent:#8fa1ff; --accent-fg:#0e1220;
+  --deep:#8fa1ff; --deep-bg:#222a4e; --admin:#4fd0be; --admin-bg:#133430; --read:#e8c64a; --read-bg:#352d0e;
+  --practice:#ff9a62; --practice-bg:#3d2214; --followup:#f27cb0; --followup-bg:#3c1a2b; --idea:#aab2c3; --idea-bg:#272e3b;
+  --warn:#f2a548; --warn-bg:#3a2810; --bad:#ff7b6f; --bad-bg:#3e1c19; --good:#62d492; --good-bg:#15321f; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body)}
+.wrap{max-width:860px;margin:0 auto;padding-block:20px 140px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:26px;font-weight:800;letter-spacing:-.02em}
+h2{font-size:18px;font-weight:700}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sub{color:var(--muted);margin:2px 0 0;font-size:14px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mini-stats{display:flex;gap:14px;font-size:13px;color:var(--muted)}
+.mini-stats b{font:700 16px/1 var(--f-display);color:var(--fg);font-variant-numeric:tabular-nums;margin-right:3px}
+.mini-stats .good b{color:var(--good)}
+
+/* capture */
+.add{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;display:flex;gap:8px}
+.add input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)}
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:9px 14px;font-weight:600}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad);border-color:var(--bad);background:transparent}
+.btn.sm{padding:5px 10px;font-size:13px;font-weight:500}
+
+/* tabs */
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:4px}
+.tabs button{flex:1;border:0;background:transparent;border-radius:7px;padding:8px 4px;font-weight:600;color:var(--muted);display:flex;justify-content:center;gap:6px;align-items:center}
+.tabs button[aria-selected="true"]{background:var(--fg);color:var(--bg)}
+.count{font:500 11px/1 var(--f-mono);background:var(--bad);color:#fff;border-radius:999px;padding:3px 6px}
+
+/* kinds */
+.k-deep{--k:var(--deep);--kb:var(--deep-bg)} .k-admin{--k:var(--admin);--kb:var(--admin-bg)}
+.k-read{--k:var(--read);--kb:var(--read-bg)} .k-practice{--k:var(--practice);--kb:var(--practice-bg)}
+.k-followup{--k:var(--followup);--kb:var(--followup-bg)} .k-idea{--k:var(--idea);--kb:var(--idea-bg)}
+.kchip{display:inline-flex;align-items:center;gap:5px;background:var(--kb);color:var(--k);border-radius:999px;padding:2px 9px 2px 7px;font-size:12px;font-weight:600;white-space:nowrap}
+.ico{width:14px;height:14px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* banners */
+.banner{border-radius:var(--r);padding:12px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+.banner p{margin:0;flex:1 1 220px}
+.banner.info{background:var(--deep-bg);color:var(--fg)}
+.banner.warn{background:var(--warn-bg)}
+.energy{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:500;display:inline-flex;gap:5px;align-items:center}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.seg button.kb{color:var(--k)}
+.seg button.kb[aria-pressed="true"]{background:var(--kb);color:var(--k);border-color:var(--k)}
+
+/* sections + cards */
+.section{display:flex;flex-direction:column;gap:10px}
+.sec-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sec-head .meta{color:var(--muted);font-size:13px}
+.hint{font-size:13px;color:var(--muted);margin:-4px 0 0;max-width:65ch}
+.domain{font:500 11px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;padding:4px 7px;border-radius:5px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
+.bar{height:4px;background:var(--line);border-radius:4px;overflow:hidden;flex:1 1 100%}
+.bar i{display:block;height:100%;background:var(--good)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card.big{padding:14px 14px 12px}
+.card.big h3{font-size:17px}
+.card.linger{border-color:var(--warn);border-style:dashed}
+.card.stale{border-color:var(--bad);border-style:dashed}
+.card.doing{box-shadow:0 0 0 2px var(--k) inset}
+.slot{font:500 11px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.right{margin-left:auto}
+.effort{display:inline-flex;gap:2px;align-items:flex-end}
+.effort i{width:4px;border-radius:1px;background:var(--line)}
+.effort i:nth-child(1){height:7px}.effort i:nth-child(2){height:10px}.effort i:nth-child(3){height:13px}
+.effort i.on{background:var(--k)}
+.tag{font:500 12px/1 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.prio{font:700 11px/1 var(--f-mono);border-radius:4px;padding:3px 5px;border:1px solid var(--line);color:var(--muted)}
+.prio.A{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.card h3{font:600 15px/1.35 var(--f-body);overflow-wrap:anywhere}
+.proj-l{font-size:12px;color:var(--muted)}
+.starter{font-size:13px;background:var(--kb);border-radius:7px;padding:6px 9px;overflow-wrap:anywhere}
+.starter b{color:var(--k)}
+.next{font-size:13px;color:var(--muted);margin:0;overflow-wrap:anywhere}
+.next b{color:var(--fg);font-weight:600}
+.flag{font-size:12px;font-weight:600;border-radius:5px;padding:2px 7px;display:inline-flex;gap:4px;align-items:center}
+.flag.warn{background:var(--warn-bg);color:var(--warn)}
+.flag.bad{background:var(--bad-bg);color:var(--bad)}
+.flag.plain{background:var(--surface-2);color:var(--muted)}
+.flag.good{background:var(--good-bg);color:var(--good)}
+.actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:auto}
+.actions button{border:1px solid var(--line);background:var(--surface-2);border-radius:7px;padding:6px 10px;font-size:13px;font-weight:500}
+.actions .go{background:var(--k);color:var(--surface);border-color:var(--k);font-weight:600}
+.status{font:500 11px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:auto}
+.decide{display:flex;gap:6px;flex-wrap:wrap}
+.decide button{border:1px dashed var(--line);background:transparent;border-radius:7px;padding:5px 10px;font-size:13px}
+.done-list{font-size:13px;color:var(--muted)}
+.done-list summary{cursor:pointer}
+.done-list ul{margin:6px 0 0;padding-left:18px}
+.done-list li.done{text-decoration:line-through}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:16px;color:var(--muted);font-size:14px}
+.note{font-size:13px;color:var(--muted);margin:0}
+.filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.filters::-webkit-scrollbar{display:none}
+.fchip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13px;display:flex;align-items:center;gap:5px;color:var(--k,var(--fg))}
+.fchip[aria-pressed="true"]{border-color:currentColor;font-weight:600;background:var(--kb,var(--surface-2))}
+.inbox-item{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.inbox-item span.t{flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
+
+/* review */
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+.step-h{display:flex;gap:10px;align-items:baseline}
+.step-n{font:700 13px/1 var(--f-mono);color:var(--muted)}
+.step.ok{border-color:var(--good)}
+.cal{display:flex;flex-direction:column;gap:8px}
+.cal-row{display:grid;grid-template-columns:130px 1fr 52px;gap:10px;align-items:center;font-size:13px}
+.cal-track{height:10px;background:var(--surface-2);border-radius:5px;position:relative}
+.cal-track i{position:absolute;top:0;bottom:0;left:0;border-radius:5px;background:var(--k)}
+.cal-track .mark{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fg)}
+.cal-row b{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+
+/* research */
+.rcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.rcard p{margin:0;max-width:65ch;font-size:14px}
+.rcard .src{font:500 12px/1.4 var(--f-mono);color:var(--muted)}
+.rcard .use{font-size:13px;background:var(--surface-2);border-radius:6px;padding:6px 9px}
+
+/* timer dock */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--surface);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.dock-in{max-width:860px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ring{width:52px;height:52px;flex:none}
+.ring circle{fill:none;stroke-width:6}
+.ring .bgc{stroke:var(--surface-2)}
+.ring .fgc{stroke:var(--k,var(--accent));stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+.dock-t{flex:1 1 160px;min-width:0}
+.dock-t b{font:700 20px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.dock-t div{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgb(10 14 22 / .45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;max-height:92%;overflow:auto;border-radius:16px 16px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
+@media (min-width:640px){.scrim{align-items:center}.sheet{border-radius:16px}}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field>label,.field>.lbl{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.field .help{font-size:12px;color:var(--muted)}
+.field input,.field select{padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);min-width:0;width:100%}
+.field.need input{border-color:var(--warn)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.two{grid-template-columns:1fr}}
+.steps{display:flex;flex-direction:column;gap:6px}
+.steps label{display:flex;gap:8px;align-items:center;font-size:14px}
+.steps label span{flex:1;min-width:0;overflow-wrap:anywhere}
+.steps .x{border:0;background:none;color:var(--muted);padding:2px 6px}
+.sheet-foot{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+.burst{position:fixed;pointer-events:none;z-index:31;left:50%;bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+.burst i{position:absolute;width:8px;height:8px;border-radius:2px;opacity:0}
+@media (prefers-reduced-motion:no-preference){
+  .burst i{animation:pop .9s ease-out forwards}
+  @keyframes pop{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(220deg)}}
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div><h1>Open Loops</h1><p class="sub">One place for everything you've committed to.</p></div>
+    <div class="mini-stats" id="mini"></div>
+  </header>
+
+  <form class="add" id="addForm" autocomplete="off">
+    <input id="addTitle" placeholder="Capture anything on your mind…" aria-label="Capture">
+    <button class="btn primary" type="submit">Capture</button>
+  </form>
+
+  <nav class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-view="now">Now</button>
+    <button role="tab" data-view="projects">Projects</button>
+    <button role="tab" data-view="review">Review</button>
+    <button role="tab" data-view="why">Why</button>
+  </nav>
+
+  <main id="main"></main>
+  <p class="note" id="syncNote"></p>
+</div>
+<div id="dockHost"></div>
+<div id="sheetHost"></div>
+<div id="toastHost"></div>
+
+<script>
+(function(){
+const ICON={
+  deep:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/>',
+  admin:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12.5l2.5 2.5 5-6"/>',
+  read:'<path d="M3 5.5c3-1 6-1 9 1 3-2 6-2 9-1v13c-3-1-6-1-9 1-3-2-6-2-9-1z"/><path d="M12 6.5v13"/>',
+  practice:'<path d="M14.5 6.5a4 4 0 0 0-5.3 5.3L4 17v3h3l5.2-5.2a4 4 0 0 0 5.3-5.3l-2.5 2.5-2.5-.5-.5-2.5z"/>',
+  followup:'<path d="M9 14l-5-5 5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  idea:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'
+};
+const ico=k=>`<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]||ICON.deep}</svg>`;
+const KINDS={
+  deep:{label:"Deep work",desc:"Needs a protected, uninterrupted block",energy:"high"},
+  admin:{label:"Quick admin",desc:"Accounts, setup, forms, errands",energy:"low"},
+  read:{label:"Reading",desc:"Docs, articles, books",energy:"low"},
+  practice:{label:"Hands-on learning",desc:"Courses, tutorials, trying tools",energy:"high"},
+  followup:{label:"Follow-up",desc:"Waiting on or chasing someone",energy:"low"},
+  idea:{label:"Idea",desc:"Captured, not committed",energy:"low"}
+};
+const KO=["deep","admin","read","practice","followup","idea"];
+const DOMAINS={venture:"Venture",job:"Job",learning:"Learning",life:"Life"};
+const EFFORT=["","Easy","Medium","Tough"];
+const EST=[15,30,60,120];
+const STATUS={inbox:"Inbox",idea:"Parked",open:"Open",doing:"Doing",waiting:"Waiting",done:"Done",dropped:"Dropped"};
+const LINGER=7, STALE=14, CHASE=4, WIP=3, MAX_A=3;
+
+let items=[], settings={timer:25,energy:"high",lastReview:""}, db=null, local=false, loaded=false;
+let view="now", pfilter="all";
+let timer=null; // {id,start,end,min}
+const LS="openloops.v2", LST="openloops.timer";
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nowMs=()=>Date.now();
+const iso=()=>new Date().toISOString();
+const days=t=>{const v=Date.parse(t);return isNaN(v)?0:Math.max(0,Math.floor((nowMs()-v)/864e5));};
+const uid=()=>"t"+nowMs().toString(36)+Math.random().toString(36).slice(2,6);
+const fmtMin=m=>m>=60?(m%60?`${Math.floor(m/60)}h ${m%60}m`:`${m/60}h`):`${m}m`;
+function dueIn(i){ if(!i.due) return null; const d=new Date(i.due+"T23:59:59"); if(isNaN(d)) return null; return Math.floor((d-nowMs())/864e5); }
+function dueLabel(i){
+  const n=dueIn(i); if(n===null) return "";
+  const hard=i.dueType!=="soft";
+  const txt=n<0?`Overdue ${-n}d`:n===0?"Due today":n===1?"Due tomorrow":`Due in ${n}d`;
+  const cls=n<0?"bad":n<=2&&hard?"warn":"plain";
+  return `<span class="flag ${cls}">${txt}${hard?"":" · self-set"}</span>`;
+}
+const isOpen=i=>["open","doing","waiting"].includes(i.status);
+const age=i=>days(i.touched||i.created);
+function linger(i){
+  if(!isOpen(i)) return 0;
+  const d=age(i);
+  if(i.status==="waiting") return d>=STALE?2:d>=CHASE?1:0;
+  return d>=STALE?2:d>=LINGER?1:0;
+}
+const needsStarter=i=>isOpen(i)&&i.effort===3&&!(i.starter||"").trim();
+const unplanned=i=>isOpen(i)&&!(i.next||"").trim()&&!(i.starter||"").trim()&&!(i.when||"").trim()&&!i.due;
+
+function guessKind(t){
+  t=t.trim();
+  if(/^(idea|maybe|someday|what if)\b/i.test(t)||/\?$/.test(t)) return "idea";
+  if(/\b(follow[- ]?up|ask|remind|ping|chase|reply|respond|check with|wait(ing)? (for|on)|hear back)\b/i.test(t)) return "followup";
+  if(/\b(read|article|book|docs?|documentation|paper|blog|watch|video)\b/i.test(t)) return "read";
+  if(/\b(learn|course|tutorial|practi[cs]e|try out|experiment|workshop|hands[- ]on|study|explore)\b/i.test(t)) return "practice";
+  if(/\b(create|register|sign[- ]?up|account|pay|renew|install|fill|submit|order|buy|book|schedule|email|upload|download|apply)\b/i.test(t)) return "admin";
+  return "deep";
+}
+const defEffort=k=>({deep:3,practice:2,read:2,admin:1,followup:1,idea:1})[k];
+const defEst=k=>({deep:120,practice:60,read:30,admin:15,followup:15,idea:15})[k];
+
+/* ---------------- storage ---------------- */
+async function boot(){
+  try{const t=JSON.parse(localStorage.getItem(LST)||"null"); if(t&&t.id) timer=t;}catch(e){}
+  render();
+  const to=setTimeout(()=>{if(!loaded) $("#syncNote").textContent="Can't reach your saved list yet. Changes may not save until it connects.";},10000);
+  try{ db=window.claude&&window.claude.use?await window.claude.use("db"):null; }catch(e){ db=null; }
+  if(!db){
+    clearTimeout(to); local=true;
+    try{const s=JSON.parse(localStorage.getItem(LS)||"{}"); items=s.items||[]; Object.assign(settings,s.settings||{});}catch(e){}
+    loaded=true; $("#syncNote").textContent="Saved on this device only."; render(); return;
+  }
+  db.collection("items").onSnapshot(snap=>{
+    items=snap.docs.map(d=>Object.assign({id:d.id},d.data()));
+    if(!snap.metadata.fromCache){loaded=true;clearTimeout(to);$("#syncNote").textContent="Synced across your devices.";}
+    else loaded=true;
+    render();
+  },()=>{clearTimeout(to);loaded=true;$("#syncNote").textContent="Sync stopped. Reload the page to reconnect.";render();});
+  db.doc("settings/main").onSnapshot(s=>{ if(s.exists){Object.assign(settings,s.data()); render();} },()=>{});
+}
+function persistLocal(){ try{localStorage.setItem(LS,JSON.stringify({items,settings}));}catch(e){} }
+async function save(item,{silentTouch}={}){
+  if(!silentTouch) item.touched=iso();
+  const body=Object.assign({},item); delete body.id;
+  if(local){ const ix=items.findIndex(x=>x.id===item.id); if(ix<0) items.push(item); else items[ix]=item; persistLocal(); render(); return true; }
+  try{ await db.collection("items").doc(item.id).set(body); return true; }
+  catch(e){
+    toast(e&&e.code==="invalid_argument"?"You can view this list but not change it.":e&&e.code==="quota_exceeded"?"The list is full. Delete old done items to add more.":"Couldn't save. Try again in a moment.");
+    return false;
+  }
+}
+async function remove(id){
+  if(local){ items=items.filter(x=>x.id!==id); persistLocal(); render(); return; }
+  try{ await db.collection("items").doc(id).delete(); }catch(e){ toast("Couldn't delete. Try again."); }
+}
+let settingsBusy=false;
+async function saveSettings(patch){
+  Object.assign(settings,patch); render();
+  if(local){ persistLocal(); return; }
+  if(settingsBusy) return; settingsBusy=true;
+  try{ await db.doc("settings/main").set(Object.assign({},settings)); }catch(e){ toast("Couldn't save the setting."); }
+  settingsBusy=false;
+}
+
+/* ---------------- pieces ---------------- */
+const effortHtml=e=>`<span class="effort" title="${EFFORT[e]} effort"><i class="${e>=1?"on":""}"></i><i class="${e>=2?"on":""}"></i><i class="${e>=3?"on":""}"></i></span>`;
+function card(i,opt={}){
+  const k=KINDS[i.kind]?i.kind:"deep", lv=linger(i), d=age(i);
+  const steps=i.steps||[], sd=steps.filter(s=>s.done).length;
+  let flags=dueLabel(i);
+  if(lv===2) flags+=`<span class="flag bad">Untouched ${d}d</span>`;
+  else if(lv===1) flags+=i.status==="waiting"?`<span class="flag warn">Chase · waiting ${d}d</span>`:`<span class="flag warn">Lingering ${d}d</span>`;
+  if(needsStarter(i)) flags+=`<span class="flag plain">Add a 2-min starter</span>`;
+  else if(unplanned(i)) flags+=`<span class="flag plain">No next step</span>`;
+  if(steps.length) flags+=`<span class="flag plain">${sd}/${steps.length} steps</span>`;
+  const starter=(i.starter||"").trim(), next=(i.next||"").trim(), when=(i.when||"").trim();
+  let acts="";
+  if(i.status==="done"||i.status==="dropped") acts=`<button data-act="reopen">Reopen</button>`;
+  else if(i.status==="inbox") acts=`<button class="go" data-act="edit">Sort</button><button data-act="accept">Keep as ${KINDS[k].label.toLowerCase()}</button>`;
+  else if(i.status==="idea") acts=`<button class="go" data-act="commit">Commit</button>`;
+  else{
+    acts+=`<button class="go" data-act="focus">Focus ${settings.timer}m</button>`;
+    acts+=`<button data-act="done">Done</button>`;
+    if(i.kind==="followup"&&i.status!=="waiting") acts+=`<button data-act="waiting">Waiting</button>`;
+  }
+  acts+=`<button data-act="edit">Edit</button>`;
+  return `<article class="card k-${k}${opt.big?" big":""}${lv===2?" stale":lv===1?" linger":""}${i.status==="doing"?" doing":""}" data-id="${esc(i.id)}">
+    ${opt.slot?`<div class="slot">${opt.slot}</div>`:""}
+    <div class="row"><span class="kchip">${ico(k)}${KINDS[k].label}</span>${i.prio?`<span class="prio ${i.prio}">${i.prio}</span>`:""}<span class="right row">${effortHtml(i.effort||1)}<span class="tag">${fmtMin(i.est||defEst(k))}</span></span></div>
+    <div><h3>${esc(i.title)}</h3>${opt.proj!==false&&i.project?`<div class="proj-l">${esc(i.project)}</div>`:""}</div>
+    ${starter&&isOpen(i)?`<div class="starter"><b>Start with:</b> ${esc(starter)}</div>`:""}
+    ${next||when?`<p class="next">${next?`<b>Next:</b> ${esc(next)}`:""}${next&&when?" · ":""}${when?`<b>When:</b> ${esc(when)}`:""}</p>`:""}
+    ${flags?`<div class="row">${flags}</div>`:""}
+    ${opt.decide?`<div class="decide"><button data-act="shrink">Shrink it</button><button data-act="schedule">Schedule it</button><button data-act="park">Park it</button><button data-act="drop">Drop it</button></div>`:""}
+    <div class="actions"><span class="status">${STATUS[i.status]||"Open"}</span>${acts}</div>
+  </article>`;
+}
+function score(i){
+  let s=0;
+  if(i.status==="doing") s-=100;
+  if(i.prio==="A") s-=30; else if(i.prio==="B") s-=10;
+  const n=dueIn(i); if(n!==null){ if(n<0) s-=45; else if(n<=2) s-=25; else if(n<=7) s-=10; }
+  s-=linger(i)*3;
+  return s;
+}
+const byScore=(a,b)=>score(a)-score(b);
+
+/* ---------------- views ---------------- */
+function renderMini(){
+  const open=items.filter(isOpen).length, inbox=items.filter(i=>i.status==="inbox").length;
+  const week=items.filter(i=>(i.status==="done"||i.status==="dropped")&&days(i.doneAt||i.touched)<7).length;
+  $("#mini").innerHTML=`<span><b>${open}</b>open</span><span><b>${inbox}</b>inbox</span><span class="good"><b>${week}</b>closed this week</span>`;
+}
+function reviewDue(){
+  const d=new Date(), sun=d.getDay()===0&&d.getHours()>=17;
+  const since=settings.lastReview?days(settings.lastReview):99;
+  return (sun&&since>=1)||since>=8;
+}
+function viewNow(){
+  if(!loaded) return `<div class="empty">Loading your list…</div>`;
+  let h="";
+  if(reviewDue()) h+=`<div class="banner info"><p><b>Weekly review.</b> About 10 minutes: clear the inbox, decide on lingering items, pick this week's A's.</p><button class="btn primary sm" data-go="review">Start review</button></div>`;
+  const sinceBk=settings.lastBackup?days(settings.lastBackup):99;
+  if(local&&items.length&&sinceBk>=7&&!reviewDue()) h+=`<div class="banner warn"><p><b>Back up your list.</b> On this device your list lives only in this browser. A backup file keeps it safe.</p><button class="btn sm" data-go="review">Back up</button></div>`;
+  const aCount=items.filter(i=>isOpen(i)&&i.prio==="A").length;
+  if(aCount>MAX_A) h+=`<div class="banner warn"><p>${aCount} open items are marked A. Keep it to ${MAX_A} so A still means something.</p><button class="btn sm" data-go="review">Fix in review</button></div>`;
+  const inbox=items.filter(i=>i.status==="inbox");
+  if(inbox.length) h+=`<div class="banner warn"><p><b>${inbox.length} in your inbox.</b> Sort them when you have a minute; it doesn't need to be now.</p><button class="btn sm" data-go="review">Sort inbox</button></div>`;
+
+  const en=settings.energy||"high";
+  h+=`<div class="energy"><span>How's your energy?</span><div class="seg" id="energySeg"><button data-en="high" aria-pressed="${en==="high"}">High</button><button data-en="low" aria-pressed="${en==="low"}">Low</button></div></div>`;
+
+  const pool=items.filter(i=>i.status==="open"||i.status==="doing"||(i.status==="waiting"&&linger(i)>0));
+  const used=new Set();
+  const pick=(kinds)=>{const c=pool.filter(i=>kinds.includes(i.kind)&&!used.has(i.id)).sort(byScore)[0]; if(c) used.add(c.id); return c;};
+  const slots=en==="high"
+    ?[["One deep block",["deep"]],["One quick win",["admin","followup"]],["One learning step",["practice","read"]]]
+    :[["Low-energy learning",["read"]],["One quick win",["admin","followup"]],["One more easy one",["admin","followup","read"]]];
+  const picks=slots.map(([s,k])=>{const i=pick(k);return i?{s,i}:null;}).filter(Boolean);
+  if(picks.length<3){ const extra=pool.filter(i=>!used.has(i.id)&&(en==="high"||KINDS[i.kind].energy==="low")).sort(byScore); while(picks.length<3&&extra.length){const i=extra.shift();used.add(i.id);picks.push({s:"Next up",i});} }
+  h+=`<section class="section"><div class="sec-head"><h2>Now</h2><span class="meta">${en==="high"?"Pick one and start the timer":"Easy things only. That's still progress."}</span></div>`;
+  h+=picks.length?`<div class="cards">${picks.map(p=>card(p.i,{big:true,slot:p.s})).join("")}</div>`:`<div class="empty">Nothing open right now. Capture something above, or commit an idea from Projects.</div>`;
+  h+=`</section>`;
+
+  const dueSoon=items.filter(i=>isOpen(i)&&!used.has(i.id)&&i.dueType!=="soft"&&dueIn(i)!==null&&dueIn(i)<=3).sort(byScore);
+  if(dueSoon.length) h+=`<section class="section"><div class="sec-head"><h2>Due soon</h2><span class="meta">${dueSoon.length}</span></div><div class="cards">${dueSoon.map(i=>card(i)).join("")}</div></section>`;
+
+  const stuck=items.filter(i=>isOpen(i)&&!used.has(i.id)&&i.status!=="waiting"&&linger(i)>0).sort((a,b)=>age(b)-age(a));
+  if(stuck.length) h+=`<section class="section"><div class="sec-head"><h2>Needs a decision</h2><span class="meta">${stuck.length}</span></div><p class="hint">These have sat untouched for a while. Make it smaller, give it a time, park it, or let it go. Dropping counts as closing the loop.</p><div class="cards">${stuck.slice(0,2).map(i=>card(i,{decide:true})).join("")}</div>${stuck.length>2?`<p class="note">${stuck.length-2} more in Review.</p>`:""}</section>`;
+  return h;
+}
+function viewProjects(){
+  if(!loaded) return `<div class="empty">Loading your list…</div>`;
+  const counts={}; items.filter(isOpen).forEach(i=>counts[i.kind]=(counts[i.kind]||0)+1);
+  let h=`<div class="filters" id="pfilters"><button class="fchip" data-f="all" aria-pressed="${pfilter==="all"}">All</button><button class="fchip" data-f="A" aria-pressed="${pfilter==="A"}">Priority A</button>${KO.map(k=>`<button class="fchip k-${k}" data-f="${k}" aria-pressed="${pfilter===k}">${ico(k)}${KINDS[k].label} ${counts[k]||0}</button>`).join("")}</div>`;
+  const pass=i=>pfilter==="all"||(pfilter==="A"?i.prio==="A":i.kind===pfilter);
+  const groups={}; items.filter(i=>i.status!=="inbox").forEach(i=>{const p=i.project||"No project";(groups[p]=groups[p]||[]).push(i);});
+  const names=Object.keys(groups).sort((a,b)=>groups[b].filter(isOpen).length-groups[a].filter(isOpen).length||a.localeCompare(b));
+  if(!names.length) return h+`<div class="empty">No projects yet. Capture a task and give it a project when you sort it.</div>`;
+  let body="";
+  names.forEach(n=>{
+    const g=groups[n], open=g.filter(i=>(isOpen(i)||i.status==="idea")&&pass(i)).sort((a,b)=>(a.status==="idea")-(b.status==="idea")||byScore(a,b));
+    const closed=g.filter(i=>i.status==="done"||i.status==="dropped");
+    if(!open.length&&pfilter!=="all") return;
+    const total=g.filter(i=>i.status!=="idea").length, pct=total?Math.round(closed.length/total*100):0;
+    body+=`<section class="section"><div class="sec-head"><h2>${esc(n)}</h2><span class="domain">${DOMAINS[g[0].domain]||"Other"}</span><span class="meta">${closed.length}/${total} closed</span><div class="bar"><i style="width:${pct}%"></i></div></div>
+      ${open.length?`<div class="cards">${open.map(i=>card(i,{proj:false})).join("")}</div>`:`<p class="note">Nothing open here.</p>`}
+      ${closed.length?`<details class="done-list"><summary>${closed.length} closed</summary><ul>${closed.map(i=>`<li class="${i.status==="done"?"done":""}">${esc(i.title)}${i.status==="dropped"?" (dropped)":""}</li>`).join("")}</ul></details>`:""}</section>`;
+  });
+  return h+(body||`<div class="empty">Nothing matches this filter.</div>`);
+}
+function calibration(){
+  const by={};
+  items.filter(i=>i.status==="done"&&i.actual&&i.est).forEach(i=>{(by[i.kind]=by[i.kind]||[]).push(i.actual/i.est);});
+  const rows=KO.filter(k=>by[k]&&by[k].length).map(k=>{const a=by[k].sort((x,y)=>x-y);const m=a[Math.floor(a.length/2)];return {k,m,n:a.length};});
+  if(!rows.length) return `<p class="note">When you finish something, you'll be asked how long it really took. After a few, this shows how your estimates compare with reality for each kind of work.</p>`;
+  const max=Math.max(3,...rows.map(r=>r.m));
+  return `<div class="cal">${rows.map(r=>`<div class="cal-row k-${r.k}"><span class="row" style="gap:5px;color:var(--k)">${ico(r.k)}${KINDS[r.k].label}</span><div class="cal-track"><i style="width:${Math.min(100,r.m/max*100)}%"></i><span class="mark" style="left:${100/max}%" title="Your estimate"></span></div><b>${r.m.toFixed(1)}×</b></div>`).join("")}</div>
+  <p class="note">The black line is your estimate. ${rows.some(r=>r.m>=1.4)?"Bars past it mean that kind of work takes longer than you plan for, so pad those estimates.":"You're estimating well so far."}</p>`;
+}
+function viewReview(){
+  if(!loaded) return `<div class="empty">Loading your list…</div>`;
+  const inbox=items.filter(i=>i.status==="inbox");
+  const stuck=items.filter(i=>isOpen(i)&&linger(i)>0).sort((a,b)=>age(b)-age(a));
+  const due7=items.filter(i=>isOpen(i)&&dueIn(i)!==null&&dueIn(i)<=7).sort((a,b)=>dueIn(a)-dueIn(b));
+  const openAll=items.filter(i=>isOpen(i)).sort(byScore);
+  const aCount=openAll.filter(i=>i.prio==="A").length;
+  const last=settings.lastReview?`Last review: ${days(settings.lastReview)===0?"today":days(settings.lastReview)+" days ago"}.`:"No review yet.";
+  let h=`<div class="sec-head"><h2>Weekly review</h2><span class="meta">${last} Best on Sunday evening.</span></div>`;
+  h+=`<div class="step ${inbox.length?"":"ok"}"><div class="step-h"><span class="step-n">1</span><h3>Empty the inbox</h3></div>
+    ${inbox.length?inbox.map(i=>`<div class="inbox-item k-${i.kind}" data-id="${esc(i.id)}"><span class="kchip">${ico(i.kind)}${KINDS[i.kind].label}</span><span class="t">${esc(i.title)}</span><button class="btn sm" data-act="accept">Keep</button><button class="btn sm" data-act="edit">Sort</button><button class="btn sm" data-act="park">Park</button></div>`).join(""):`<p class="note">Inbox is empty.</p>`}</div>`;
+  h+=`<div class="step ${stuck.length?"":"ok"}"><div class="step-h"><span class="step-n">2</span><h3>Decide on lingering loops</h3></div>
+    ${stuck.length?`<div class="cards">${stuck.map(i=>card(i,{decide:i.status!=="waiting"})).join("")}</div>`:`<p class="note">Nothing lingering.</p>`}</div>`;
+  h+=`<div class="step"><div class="step-h"><span class="step-n">3</span><h3>Check the next 7 days</h3></div>
+    ${due7.length?`<div class="cards">${due7.map(i=>card(i)).join("")}</div>`:`<p class="note">Nothing due in the next week.</p>`}</div>`;
+  h+=`<div class="step ${aCount&&aCount<=MAX_A?"ok":""}"><div class="step-h"><span class="step-n">4</span><h3>Pick this week's A items</h3></div><p class="note">Up to ${MAX_A}. Tap to cycle A → B → C. Currently ${aCount} marked A.</p>
+    <div class="steps">${openAll.map(i=>`<label class="k-${i.kind}"><button type="button" class="prio ${i.prio||""}" data-prio="${esc(i.id)}" style="cursor:pointer;min-width:28px">${i.prio||"–"}</button><span>${esc(i.title)}</span><span class="tag" style="flex:none">${esc(i.project||"")}</span></label>`).join("")||`<p class="note">No open items.</p>`}</div></div>`;
+  h+=`<div class="step"><div class="step-h"><span class="step-n">5</span><h3>How good are your time estimates?</h3></div>${calibration()}</div>`;
+  const lb=settings.lastBackup?days(settings.lastBackup):null;
+  h+=`<div class="step ${lb!==null&&lb<8?"ok":""}"><div class="step-h"><span class="step-n">6</span><h3>Back up your list</h3></div>
+    <p class="note">${lb===null?"No backup yet.":`Last backup: ${lb===0?"today":lb+" days ago"}.`} The backup is one small file with every item and setting. Import it into any copy of this app to restore or move your list. Importing adds new items and updates matching ones; it never deletes anything.</p>
+    <div class="row"><button class="btn primary" id="exportBtn">Export backup</button><label class="btn" for="importFile" style="cursor:pointer">Import backup</label><input type="file" id="importFile" accept=".json,application/json" hidden></div></div>`;
+  h+=`<div class="step"><div class="step-h"><span class="step-n">7</span><h3>Finish</h3></div><div class="row"><button class="btn primary" id="reviewDone">Mark review done</button><label class="row" style="gap:8px;font-size:14px">Focus timer length <select id="timerLen" style="padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2)">${[15,20,25,30,45,50,60,90].map(m=>`<option value="${m}" ${settings.timer===m?"selected":""}>${m} min</option>`).join("")}</select></label></div></div>`;
+  return h;
+}
+function viewWhy(){
+  const R=[
+    ["Every item is an open loop","Goals you've committed to but not finished keep pulling your thoughts back until they're done or have a plan.","Klinger, current-concerns theory (1975); Zeigarnik effect","The unit of the app is the open loop, and the header counts them."],
+    ["Put it outside your head, where you act","ADHD is mainly a difficulty with self-regulation and working memory. The most reliable fix is putting information, time and motivation into the environment at the moment you do the work.","Barkley, executive-function model of ADHD (1997, 2012)","One capture box, a three-item Now screen, visible timers and visible progress."],
+    ["Too many choices stall starting","Long lists raise the cost of deciding what to do next, which hits hardest when initiation is already hard.","CBT for adult ADHD: Safren et al. (2005, 2010)","Now shows at most three items, matched to your energy. Everything else is one tap away."],
+    ["Break it down, prioritise A/B/C","CBT programmes for adult ADHD teach one task list, A/B/C priorities and splitting big tasks into small steps. In trials this improved symptoms more than relaxation training.","Safren et al., JAMA (2010)","Priority A/B/C with a cap of three A's; subtasks; a 2-minute starter step on every Tough item."],
+    ["When–then plans","Plans phrased 'When X, I will Y' roughly double follow-through. They also improved self-control in children with ADHD.","Gollwitzer & Sheeran (2006); Gawrilow & Gollwitzer (2008)","The When / trigger field on every item."],
+    ["A written plan quiets the loop","Writing a specific plan for an unfinished goal reduced intrusive thoughts about it, before it was done. Replications are mixed.","Masicampo & Baumeister (2011)","Items with no next step, starter, time or date are flagged."],
+    ["Time blindness","People with ADHD tend to misjudge durations and feel the future less vividly.","Barkley; Toplak, Daineko & Tannock (2006) review","Time estimates on every item, a visual focus timer, and a comparison of estimated vs actual time."],
+    ["Far-off rewards lose","ADHD is linked to a strong preference for immediate rewards.","Sonuga-Barke, dual-pathway model (2002)","Small steps, a burst of colour on every closed loop, and per-project progress bars. No streaks, which tend to cause shame when broken."],
+    ["Attention residue","Switching away from an unfinished task leaves part of your attention on it.","Leroy (2009)","At most three items in Doing; one deep block at a time."],
+    ["Deep vs shallow work","Demanding work needs long uninterrupted blocks; admin can be batched.","Newport, Deep Work (2016)","Deep work and Quick admin are separate kinds, and the energy toggle routes them."],
+    ["Self-set deadlines help, less than real ones","People use self-imposed deadlines to fight procrastination, but they work less well than external ones.","Ariely & Wertenbroch (2002)","Due dates are marked hard or self-set and shown differently."],
+    ["Separate ideas, review weekly","Keeping someday ideas apart and reviewing everything weekly stops lists from going stale.","Allen, Getting Things Done (2001)","An inbox, a parked state for ideas, and a guided Sunday review."],
+    ["Keeping the job is sound strategy","Founders who start while employed are less likely to fail than those who quit first.","Raffiee & Feng (2014)","Job and Venture are separate domains so you can see the balance."]
+  ];
+  return `<div class="section">${R.map(r=>`<article class="rcard"><h3>${r[0]}</h3><p>${r[1]}</p><div class="src">${r[2]}</div><div class="use">In this app: ${r[3]}</div></article>`).join("")}<p class="note">Built on research about attention and executive function. Useful for anyone with a heavy mental load; not a substitute for clinical support.</p></div>`;
+}
+function render(){
+  renderMini();
+  document.querySelectorAll("#tabs button").forEach(b=>{
+    b.setAttribute("aria-selected",b.dataset.view===view);
+    if(b.dataset.view==="review"){const n=items.filter(i=>i.status==="inbox").length;b.innerHTML=`Review${n?`<span class="count">${n}</span>`:""}`;}
+  });
+  const sy=window.scrollY;
+  $("#main").innerHTML=`<div class="section" style="gap:18px">${view==="now"?viewNow():view==="projects"?viewProjects():view==="review"?viewReview():viewWhy()}</div>`;
+  window.scrollTo(0,sy);
+  renderDock();
+}
+
+/* ---------------- timer ---------------- */
+let tick=null;
+function renderDock(){
+  const host=$("#dockHost");
+  if(!timer){host.innerHTML="";clearInterval(tick);tick=null;return;}
+  const it=items.find(x=>x.id===timer.id);
+  const k=it&&KINDS[it.kind]?it.kind:"deep";
+  host.innerHTML=`<div class="dock k-${k}" role="region" aria-label="Focus timer"><div class="dock-in">
+    <svg class="ring" viewBox="0 0 52 52"><circle class="bgc" cx="26" cy="26" r="22"/><circle class="fgc" id="ringFg" cx="26" cy="26" r="22" stroke-dasharray="138.2" stroke-dashoffset="0"/></svg>
+    <div class="dock-t"><b id="tLeft">--:--</b><div>${esc(it?it.title:"Focus")}</div></div>
+    <div class="row" id="tBtns"></div></div></div>`;
+  updateDock(true);
+  if(!tick) tick=setInterval(()=>updateDock(false),1000);
+}
+let lastOver=null;
+function updateDock(force){
+  if(!timer) return;
+  const left=Math.round((timer.end-nowMs())/1000), total=timer.min*60;
+  const over=left<=0;
+  const el=$("#tLeft"); if(!el) return;
+  const a=Math.abs(left); el.textContent=(over?"+":"")+String(Math.floor(a/60)).padStart(2,"0")+":"+String(a%60).padStart(2,"0");
+  const ring=$("#ringFg"); if(ring) ring.setAttribute("stroke-dashoffset",String(138.2*Math.min(1,Math.max(0,1-left/total))));
+  if(force||over!==lastOver){
+    lastOver=over;
+    $("#tBtns").innerHTML=over
+      ?`<span class="note" style="flex-basis:100%">Time's up. Still in flow, or time to stop?</span><button class="btn sm" data-t="more">+10 min</button><button class="btn sm" data-t="break">Take a break</button><button class="btn primary sm" data-t="done">Task done</button>`
+      :`<button class="btn sm" data-t="stop">Stop</button><button class="btn primary sm" data-t="done">Task done</button>`;
+    if(over) document.title="Time's up · Open Loops"; else document.title="Open Loops";
+  }
+}
+async function startTimer(it){
+  if(timer&&timer.id!==it.id) await stopTimer(false);
+  const doing=items.filter(i=>i.status==="doing"&&i.id!==it.id).length;
+  if(it.status!=="doing"&&doing>=WIP){ return wipSheet(it); }
+  timer={id:it.id,start:nowMs(),end:nowMs()+settings.timer*60000,min:settings.timer};
+  try{localStorage.setItem(LST,JSON.stringify(timer));}catch(e){}
+  if(it.status!=="doing") await save(Object.assign({},it,{status:"doing"}));
+  render();
+}
+async function stopTimer(rerender=true){
+  if(!timer) return 0;
+  const mins=Math.max(1,Math.round((nowMs()-timer.start)/60000));
+  const it=items.find(x=>x.id===timer.id);
+  timer=null; lastOver=null; document.title="Open Loops";
+  try{localStorage.removeItem(LST);}catch(e){}
+  if(it) await save(Object.assign({},it,{spent:(it.spent||0)+mins}));
+  if(rerender) render();
+  return mins;
+}
+$("#dockHost").addEventListener("click",async e=>{
+  const b=e.target.closest("button[data-t]"); if(!b||!timer) return;
+  const t=b.dataset.t, id=timer.id;
+  if(t==="more"){ timer.end=nowMs()+10*60000; timer.min=10; try{localStorage.setItem(LST,JSON.stringify(timer));}catch(_){}; lastOver=null; updateDock(true); return; }
+  const m=await stopTimer();
+  if(t==="break") toast(`${m} min logged. Step away for 5.`);
+  if(t==="stop") toast(`${m} min logged.`);
+  if(t==="done"){ const it=items.find(x=>x.id===id); if(it) doneSheet(it); }
+});
+
+/* ---------------- sheets ---------------- */
+let sheetClose=null;
+function sheet(html,bind){
+  const host=$("#sheetHost");
+  host.innerHTML=`<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
+  const close=()=>{host.innerHTML="";document.removeEventListener("keydown",esck);sheetClose=null;};
+  const esck=e=>{if(e.key==="Escape")close();};
+  document.addEventListener("keydown",esck);
+  $("#scrim").addEventListener("click",e=>{if(e.target.id==="scrim")close();});
+  sheetClose=close; bind(close);
+}
+function wipSheet(it){
+  const doing=items.filter(i=>i.status==="doing");
+  sheet(`<h2>You already have ${doing.length} things in progress</h2><p class="note">Switching between unfinished tasks leaves part of your attention behind. Pause one first?</p>
+    <div class="steps">${doing.map(d=>`<label><span>${esc(d.title)}</span><button class="btn sm" data-pause="${esc(d.id)}">Pause</button></label>`).join("")}</div>
+    <div class="sheet-foot"><button class="btn ghost" id="wCancel">Cancel</button><button class="btn" id="wAny">Start anyway</button></div>`,close=>{
+    $("#wCancel").onclick=close;
+    $("#wAny").onclick=async()=>{close();timer={id:it.id,start:nowMs(),end:nowMs()+settings.timer*60000,min:settings.timer};try{localStorage.setItem(LST,JSON.stringify(timer));}catch(e){}await save(Object.assign({},it,{status:"doing"}));render();};
+    document.querySelectorAll("[data-pause]").forEach(b=>b.onclick=async()=>{const d=items.find(x=>x.id===b.dataset.pause);close();if(d)await save(Object.assign({},d,{status:"open"}));startTimer(Object.assign({},it));});
+  });
+}
+function doneSheet(it){
+  const est=it.est||defEst(it.kind), spent=it.spent||0;
+  const opts=[["Quicker",Math.round(est*.6)],["About right",est],["1.5×",Math.round(est*1.5)],["2×",est*2],["3× or more",est*3]];
+  sheet(`<h2>Nice. How long did it really take?</h2><p class="note">You estimated ${fmtMin(est)}${spent?`, and the timer logged ${fmtMin(spent)}`:""}. This helps you plan better next time.</p>
+    <div class="seg" id="dOpts">${spent?`<button data-m="${spent}">Timer: ${fmtMin(spent)}</button>`:""}${opts.map(o=>`<button data-m="${o[1]}">${o[0]}</button>`).join("")}</div>
+    <div class="sheet-foot"><button class="btn ghost" id="dSkip">Skip</button></div>`,close=>{
+    const fin=async m=>{close();const n=Object.assign({},it,{status:"done",doneAt:iso()});if(m)n.actual=m;if(timer&&timer.id===it.id)await stopTimer(false);await save(n);celebrate();};
+    $("#dSkip").onclick=()=>fin(0);
+    $("#dOpts").onclick=e=>{const b=e.target.closest("button");if(b)fin(+b.dataset.m);};
+  });
+}
+function editSheet(it,focusId){
+  const s=JSON.parse(JSON.stringify(it)); s.steps=s.steps||[];
+  if(!s.est) s.est=defEst(s.kind); if(!s.effort) s.effort=defEffort(s.kind);
+  if(s.status==="inbox") s.status=s.kind==="idea"?"idea":"open";
+  const projs=[...new Set(items.map(i=>i.project).filter(Boolean))];
+  const draw=()=>sheet(`<h2>${it.status==="inbox"?"Sort":"Edit"}</h2>
+    <div class="field"><label for="f-title">Title</label><input id="f-title" value="${esc(s.title)}"></div>
+    <div class="two"><div class="field"><label for="f-proj">Project</label><input id="f-proj" list="pl" value="${esc(s.project)}"><datalist id="pl">${projs.map(p=>`<option value="${esc(p)}">`).join("")}</datalist></div>
+      <div class="field"><label for="f-dom">Domain</label><select id="f-dom">${Object.keys(DOMAINS).map(d=>`<option value="${d}" ${s.domain===d?"selected":""}>${DOMAINS[d]}</option>`).join("")}</select></div></div>
+    <div class="field"><span class="lbl">Kind of attention</span><div class="seg" id="f-kind">${KO.map(k=>`<button type="button" class="kb k-${k}" data-v="${k}" aria-pressed="${s.kind===k}" title="${KINDS[k].desc}">${ico(k)}${KINDS[k].label}</button>`).join("")}</div></div>
+    <div class="two"><div class="field"><span class="lbl">Priority</span><div class="seg" id="f-prio">${["A","B","C"].map(p=>`<button type="button" data-v="${p}" aria-pressed="${s.prio===p}">${p}</button>`).join("")}</div><span class="help">A = must happen this week</span></div>
+      <div class="field"><span class="lbl">Effort</span><div class="seg" id="f-eff">${[1,2,3].map(x=>`<button type="button" data-v="${x}" aria-pressed="${s.effort===x}">${EFFORT[x]}</button>`).join("")}</div></div></div>
+    <div class="field"><span class="lbl">Time estimate</span><div class="seg" id="f-est">${EST.map(m=>`<button type="button" data-v="${m}" aria-pressed="${s.est===m}">${m===120?"2h+":fmtMin(m)}</button>`).join("")}</div></div>
+    <div class="two"><div class="field"><label for="f-due">Due date</label><input id="f-due" type="date" value="${esc(s.due||"")}"></div>
+      <div class="field"><span class="lbl">Deadline type</span><div class="seg" id="f-dt"><button type="button" data-v="hard" aria-pressed="${s.dueType!=="soft"}">Hard</button><button type="button" data-v="soft" aria-pressed="${s.dueType==="soft"}">Self-set</button></div></div></div>
+    <div class="field ${s.effort===3&&!(s.starter||"").trim()?"need":""}"><label for="f-starter">2-minute starter</label><input id="f-starter" placeholder="The tiniest first move, e.g. open the hosting pricing page" value="${esc(s.starter||"")}"><span class="help">${s.effort===3?"Tough tasks get stuck at the start. Make the first move tiny.":"Optional for easier items."}</span></div>
+    <div class="field"><label for="f-next">Next step after that</label><input id="f-next" value="${esc(s.next||"")}"></div>
+    <div class="field"><label for="f-when">When / trigger</label><input id="f-when" placeholder="e.g. Saturday 7am, before opening email" value="${esc(s.when||"")}"></div>
+    <div class="field"><span class="lbl">Break it into steps</span><div class="steps" id="f-steps">${s.steps.map((st,ix)=>`<label><input type="checkbox" data-ix="${ix}" ${st.done?"checked":""} style="width:auto"><span>${esc(st.t)}</span><button type="button" class="x" data-rm="${ix}" aria-label="Remove step">✕</button></label>`).join("")}</div>
+      <div class="row" style="flex-wrap:nowrap"><input id="f-step" placeholder="Add a small step" style="flex:1"><button type="button" class="btn sm" id="f-addstep">Add</button></div></div>
+    <div class="field"><label for="f-st">Status</label><select id="f-st">${["open","doing","waiting","idea","done","dropped"].map(x=>`<option value="${x}" ${s.status===x?"selected":""}>${STATUS[x]}</option>`).join("")}</select></div>
+    <div class="sheet-foot"><button class="btn danger" type="button" id="f-del">${s._c?"Tap again to delete":"Delete"}</button><div class="row"><button class="btn ghost" type="button" id="f-cancel">Cancel</button><button class="btn primary" type="button" id="f-save">Save</button></div></div>`,close=>{
+    const read=()=>{s.title=$("#f-title").value.trim()||s.title;s.project=$("#f-proj").value.trim();s.domain=$("#f-dom").value;s.due=$("#f-due").value;s.starter=$("#f-starter").value;s.next=$("#f-next").value;s.when=$("#f-when").value;s.status=$("#f-st").value;};
+    const segb=(id,fn)=>{$(id).onclick=e=>{const b=e.target.closest("button");if(!b)return;read();fn(b.dataset.v);draw();};};
+    segb("#f-kind",v=>{s.kind=v;});
+    segb("#f-prio",v=>{s.prio=s.prio===v?"":v;});
+    segb("#f-eff",v=>{s.effort=+v;});
+    segb("#f-est",v=>{s.est=+v;});
+    segb("#f-dt",v=>{s.dueType=v;});
+    $("#f-steps").onclick=e=>{const r=e.target.closest("[data-rm]");if(r){read();s.steps.splice(+r.dataset.rm,1);draw();}};
+    $("#f-steps").onchange=e=>{const c=e.target.closest("[data-ix]");if(c){s.steps[+c.dataset.ix].done=c.checked;}};
+    const addStep=()=>{const v=$("#f-step").value.trim();if(!v)return;read();s.steps.push({t:v,done:false});draw();setTimeout(()=>$("#f-step").focus(),0);};
+    $("#f-addstep").onclick=addStep;
+    $("#f-step").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addStep();}};
+    $("#f-cancel").onclick=close;
+    $("#f-del").onclick=async()=>{if(!s._c){read();s._c=1;draw();return;}close();await remove(s.id);toast("Deleted.");};
+    $("#f-save").onclick=async()=>{read();delete s._c;const wasDone=it.status==="done";if(s.status==="done"&&!s.doneAt)s.doneAt=iso();if(s.status!=="done"&&s.status!=="dropped")delete s.doneAt;if(s.status==="dropped"&&!s.doneAt)s.doneAt=iso();close();await save(s);if(s.status==="done"&&!wasDone)celebrate();};
+    if(focusId){const f=$(focusId);if(f){f.focus();f.scrollIntoView({block:"center"});}}
+  });
+  draw();
+}
+
+/* ---------------- events ---------------- */
+$("#addForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const title=$("#addTitle").value.trim(); if(!title) return;
+  const kind=guessKind(title);
+  const ok=await save({id:uid(),title,project:"",domain:"venture",kind,effort:defEffort(kind),est:defEst(kind),prio:"",status:"inbox",created:iso()});
+  if(ok){$("#addTitle").value="";toast(`In your inbox as ${KINDS[kind].label}. Sort it later.`);}
+});
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;view=b.dataset.view;try{localStorage.setItem("openloops.view",view);}catch(_){};window.scrollTo(0,0);render();});
+$("#main").addEventListener("click",async e=>{
+  const go=e.target.closest("[data-go]"); if(go){view=go.dataset.go;window.scrollTo(0,0);render();return;}
+  const en=e.target.closest("[data-en]"); if(en){saveSettings({energy:en.dataset.en});return;}
+  const f=e.target.closest("#pfilters [data-f]"); if(f){pfilter=pfilter===f.dataset.f?"all":f.dataset.f;render();return;}
+  const pr=e.target.closest("[data-prio]");
+  if(pr){const it=items.find(x=>x.id===pr.dataset.prio);if(it){const nx={"":"A",A:"B",B:"C",C:""}[it.prio||""];await save(Object.assign({},it,{prio:nx}),{silentTouch:true});}return;}
+  if(e.target.id==="reviewDone"){await saveSettings({lastReview:iso()});toast("Review done. See you next Sunday.");celebrate();return;}
+  const b=e.target.closest("button[data-act]"); if(!b) return;
+  const host=b.closest("[data-id]"); const it=items.find(x=>x.id===host.dataset.id); if(!it) return;
+  const a=b.dataset.act, n=Object.assign({},it);
+  switch(a){
+    case "edit": return editSheet(it);
+    case "shrink": return editSheet(it,"#f-starter");
+    case "schedule": return editSheet(it,"#f-due");
+    case "focus": return startTimer(it);
+    case "done": return doneSheet(it);
+    case "accept": n.status=n.kind==="idea"?"idea":"open"; break;
+    case "commit": n.status="open"; if(n.kind==="idea"){const g=guessKind(n.title);n.kind=g==="idea"?"deep":g;} break;
+    case "waiting": n.status="waiting"; break;
+    case "park": n.status="idea"; toast("Parked. It's safe in the project's list."); break;
+    case "drop": n.status="dropped"; n.doneAt=iso(); await save(n); toast("Dropped. That's one less loop."); celebrate(); return;
+    case "reopen": n.status="open"; delete n.doneAt; break;
+  }
+  await save(n);
+});
+$("#main").addEventListener("change",e=>{
+  if(e.target.id==="timerLen") saveSettings({timer:+e.target.value});
+  if(e.target.id==="importFile"&&e.target.files&&e.target.files[0]) readImport(e.target.files[0]);
+});
+$("#main").addEventListener("click",e=>{ if(e.target.id==="exportBtn") exportData(); });
+
+/* ---------------- backup ---------------- */
+async function exportData(){
+  const json=JSON.stringify({app:"open-loops",format:1,exportedAt:iso(),items,settings},null,2);
+  const name=`open-loops-backup-${new Date().toISOString().slice(0,10)}.json`;
+  const inClaude=!!(window.claude&&window.claude.use);
+  if(inClaude){
+    let dl=null; try{dl=await window.claude.use("downloads");}catch(e){dl=null;}
+    if(dl){
+      try{ await dl.save({filename:name,data:json}); await saveSettings({lastBackup:iso()}); toast("Backup saved."); }
+      catch(e){ if(e&&e.code!=="declined") toast("Couldn't save the file. Try again in a moment."); }
+      return;
+    }
+    try{ await navigator.clipboard.writeText(json); await saveSettings({lastBackup:iso()}); toast("Backup copied. Paste it into a note and save it as a .json file."); }
+    catch(e){ toast("Saving files isn't available here. Open the app from your GitHub link to export."); }
+    return;
+  }
+  try{
+    const blob=new Blob([json],{type:"application/json"}), url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    await saveSettings({lastBackup:iso()}); toast("Backup downloaded.");
+  }catch(e){ toast("Couldn't create the backup file."); }
+}
+function readImport(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    let d; try{ d=JSON.parse(r.result); }catch(e){ toast("That file isn't a valid backup."); return; }
+    if(!d||d.app!=="open-loops"||!Array.isArray(d.items)){ toast("That file isn't an Open Loops backup."); return; }
+    const incoming=d.items.filter(i=>i&&typeof i.id==="string"&&/^[A-Za-z0-9_\-.~:@+]{1,200}$/.test(i.id)&&i.title);
+    const existing=new Set(items.map(i=>i.id));
+    const upd=incoming.filter(i=>existing.has(i.id)).length, add=incoming.length-upd;
+    sheet(`<h2>Import backup?</h2><p class="note">From ${esc(d.exportedAt?new Date(d.exportedAt).toLocaleString():"an unknown date")}. ${add} new item${add===1?"":"s"} will be added and ${upd} updated. Nothing will be deleted.</p>
+      <div class="sheet-foot"><button class="btn ghost" id="iCancel">Cancel</button><button class="btn primary" id="iGo">Import ${incoming.length} items</button></div>`,close=>{
+      $("#iCancel").onclick=close;
+      $("#iGo").onclick=async()=>{ close(); await importItems(incoming,d.settings); };
+    });
+  };
+  r.onerror=()=>toast("Couldn't read that file.");
+  r.readAsText(file);
+  const inp=$("#importFile"); if(inp) inp.value="";
+}
+async function importItems(list,s){
+  const keep=["timer","energy","lastReview"];
+  const sp={}; if(s&&typeof s==="object") keep.forEach(k=>{ if(s[k]!==undefined) sp[k]=s[k]; });
+  if(local){
+    const map=new Map(items.map(i=>[i.id,i])); list.forEach(i=>map.set(i.id,Object.assign({},i)));
+    items=[...map.values()]; Object.assign(settings,sp); persistLocal(); render();
+    toast(`Imported ${list.length} item${list.length===1?"":"s"}.`); return;
+  }
+  let ok=0;
+  for(const i of list){ const body=Object.assign({},i); delete body.id; try{ await db.collection("items").doc(i.id).set(body); ok++; }catch(e){} }
+  if(Object.keys(sp).length) await saveSettings(sp);
+  toast(ok===list.length?`Imported ${ok} item${ok===1?"":"s"}.`:`Imported ${ok} of ${list.length}. Try importing again for the rest.`);
+}
+
+let tt;
+function toast(m){const h=$("#toastHost");h.innerHTML=`<div class="toast" role="status">${esc(m)}</div>`;clearTimeout(tt);tt=setTimeout(()=>{h.innerHTML="";},3200);}
+function celebrate(){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){toast("Loop closed.");return;}
+  const cols=["--deep","--admin","--read","--practice","--followup","--good"];
+  const el=document.createElement("div");el.className="burst";
+  el.innerHTML=Array.from({length:22},(_,i)=>{const a=Math.random()*Math.PI*2,r=60+Math.random()*90;return `<i style="background:var(${cols[i%cols.length]});--dx:${Math.cos(a)*r}px;--dy:${Math.sin(a)*r-40}px"></i>`;}).join("");
+  document.body.appendChild(el);setTimeout(()=>el.remove(),1000);
+  toast("Loop closed.");
+}
+
+try{const v=localStorage.getItem("openloops.view");if(v&&["now","projects","review","why"].includes(v))view=v;}catch(e){}
+boot();
+})();
+</script>
