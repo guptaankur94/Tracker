@@ -5,6 +5,7 @@ Writes index.html, manifest.webmanifest and the app icons into the repo root.
 The source file is the same one published as the Claude artifact (no <html>/<head>
 of its own), so this script adds the document shell and iPhone home-screen tags.
 """
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -28,11 +29,34 @@ HEAD = """<!doctype html>
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
+<script>if("serviceWorker" in navigator&&location.protocol==="https:"){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
 """
 TAIL = "\n</body>\n</html>\n"
+
+# Offline support: the page is fetched fresh when online and served from the cache when not.
+SW = """const CACHE = "openloops-__VERSION__";
+const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+});
+self.addEventListener("activate", e => {
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+});
+self.addEventListener("fetch", e => {
+  const r = e.request;
+  if (r.method !== "GET") return;
+  const u = new URL(r.url);
+  const put = res => { if (res && res.ok) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(r, cp)); } return res; };
+  if (u.origin === location.origin) {
+    e.respondWith(fetch(r).then(put).catch(() => caches.match(r).then(m => m || caches.match("./index.html"))));
+  } else if (/fonts\\.(googleapis|gstatic)\\.com$/.test(u.hostname)) {
+    e.respondWith(caches.match(r).then(m => m || fetch(r).then(put)));
+  }
+});
+"""
 
 
 def icon(size: int) -> Image.Image:
@@ -70,9 +94,11 @@ def main() -> None:
         ],
     }
     (ROOT / "manifest.webmanifest").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    version = hashlib.sha1(body.encode("utf-8")).hexdigest()[:10]
+    (ROOT / "sw.js").write_text(SW.replace("__VERSION__", version), encoding="utf-8")
     (ROOT / "src").mkdir(exist_ok=True)
     (ROOT / "src" / "open-loops.html").write_text(body, encoding="utf-8")
-    print("built index.html, manifest.webmanifest, icons")
+    print("built index.html, sw.js, manifest.webmanifest, icons")
 
 
 if __name__ == "__main__":

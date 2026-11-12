@@ -24,6 +24,8 @@ In this version, tasks are saved **only in the browser on that device**. They do
 | `src/open-loops.html` | The app source. The same file is published as the Claude artifact |
 | `build/build.py` | Turns the source into `index.html`, the icons and the manifest |
 | `manifest.webmanifest`, `icon-*.png` | Home-screen name and icon |
+| `sw.js` | Lets the home-screen app open without internet (built) |
+| `tests/audit.js` | Automated test of every feature in an emulated iPhone (`node tests/audit.js`) |
 
 To rebuild after changing the source: `python3 build/build.py src/open-loops.html`
 
